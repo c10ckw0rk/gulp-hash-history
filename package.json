@@ -1,0 +1,36 @@
+{
+  "name": "gulp-version",
+  "version": "1.0.0",
+  "description": "Gulp plugin which accepts a file and adds it to manifest",
+  "main": "version.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/c10ckw0rk/gulp-version.git"
+  },
+  "keywords": [
+    "gulp",
+    "version",
+    "revision",
+    "manifest",
+    "hash"
+  ],
+  "author": "c10rkw0rk",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/c10ckw0rk/gulp-version/issues"
+  },
+  "homepage": "https://github.com/c10ckw0rk/gulp-version#readme",
+  "dependencies": {
+    "through2": "2.0.1",
+    "vinyl": "1.2.0",
+    "vinyl-file": "2.0.0"
+  },
+  "devDependencies": {
+    "chai": "3.5.0",
+    "gulp": "3.9.1",
+    "mocha": "3.0.2"
+  }
+}
