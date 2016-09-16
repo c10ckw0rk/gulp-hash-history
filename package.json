@@ -1,8 +1,10 @@
 {
-  "name": "gulp-version",
-  "version": "1.0.0",
-  "description": "Gulp plugin which accepts a file and adds it to manifest",
-  "main": "version.js",
+  "name": "gulp-hash-history",
+  "version": "0.0.5",
+  "description": "Gulp plugin which accepts a file, adds a hash, and adds it to a manifest",
+  "files": [
+    "index.js"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -15,7 +17,8 @@
     "version",
     "revision",
     "manifest",
-    "hash"
+    "hash",
+    "gulp-plugin"
   ],
   "author": "c10rkw0rk",
   "license": "MIT",
@@ -24,13 +27,22 @@
   },
   "homepage": "https://github.com/c10ckw0rk/gulp-version#readme",
   "dependencies": {
+    "crypto": "0.0.3",
+    "dataobject-parser": "1.0.6",
+    "deepmerge": "0.2.10",
+    "diff": "3.0.0",
+    "lodash": "4.15.0",
     "through2": "2.0.1",
     "vinyl": "1.2.0",
     "vinyl-file": "2.0.0"
   },
   "devDependencies": {
-    "chai": "3.5.0",
     "gulp": "3.9.1",
-    "mocha": "3.0.2"
+    "gulp-util": "3.0.7",
+     "should": "11.1.0",
+    "mocha": "3.0.2",
+    "rimraf": "2.5.4",
+    "stream-array": "1.1.2",
+    "stream-assert": "^2.0.3"
   }
 }

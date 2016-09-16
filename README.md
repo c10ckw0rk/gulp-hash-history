@@ -1,21 +1,18 @@
-# gulp-version [![NPM version][npm-image]][npm-url]
-Accepts a file and adds it to manifest, works as an accompanyment to `gulp-hash`
+# gulp-hash-history
 
-`npm install --save-dev gulp-version`
+`npm install gulp-hash-history`
 
 ## Basic usage
 
 ```javascript
-var version = require('gulp-version');
+var hashHistory = require('gulp-hash-history');
 
 gulp.src('./js/**/*.js')
-  .pipe(hash())
+  .pipe(hashHistory.hash()) // add hash
   .pipe(gulp.dest(dest)),
-  .pipe(version({
-    name: 'js.js',
-    dest: './static',
-    oldVersion: './static/js.js',
-    prefix: 'window.mlui = window.mlui || {}; mlui.js ='
+  .pipe(hashHistory.history({
+    src: 'fixtures/history.json', // read and save file to this location
+    key: 'legacy.js' // js object prefix
   }))
   .pipe(gulp.dest('./static'));
 
