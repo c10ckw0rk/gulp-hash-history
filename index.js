@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const assign = require('lodash').assign;
 const Dop = require('dataobject-parser');
 const merge = require('deepmerge');
+const vwrite = require('vinyl-write');
 
 module.exports = {
 
@@ -20,14 +21,11 @@ module.exports = {
       removeOld: true
     }, opts);
 
-    return through.obj((vinylStream, enc, cb) => {
+    return through.obj(function (vinylStream, enc, cb) {
 
-      //if no hash file.
       if (!vinylStream.hash) {
         return cb(null, vinylStream);
       }
-
-      //errors
 
       if (vinylStream.isNull()) {
         return cb('Nothing passed in stream');
@@ -107,14 +105,15 @@ module.exports = {
       const theFile = new Vinyl();
 
       if (opts.src) {
-        theFile.path = path.basename(opts.src);
+        theFile.path = process.cwd() + '/' + path.dirname(opts.src) + '/' + path.basename(opts.src);
       } else {
         theFile.path = './';
       }
 
       theFile.contents = new Buffer(JSON.stringify(file));
 
-      return cb(null, theFile);
+      vwrite(theFile)
+      return cb(null);
 
     });
 

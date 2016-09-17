@@ -13,7 +13,6 @@ gulp.src('./js/**/*.js')
   .pipe(hashHistory.history({
     src: 'fixtures/history.json', // read and save file to this location
     key: 'legacy.js' // js object prefix
-  }))
-  .pipe(gulp.dest('./static'));
+  }));
 
 ```

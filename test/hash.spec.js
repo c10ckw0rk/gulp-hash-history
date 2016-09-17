@@ -1,6 +1,5 @@
 /* eslint import/no-extraneous-dependencies: ["error", {"optionalDependencies": false}] */
 /* global describe, it, before, after */
-const version = require('../index');
 const array = require('stream-array');
 const File = require('gulp-util').File;
 const gulp = require('gulp');
