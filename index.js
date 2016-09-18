@@ -21,7 +21,7 @@ module.exports = {
       removeOld: true
     }, opts);
 
-    return through.obj(function (vinylStream, enc, cb) {
+    return through.obj((vinylStream, enc, cb) => {
 
       if (!vinylStream.hash) {
         return cb(null, vinylStream);
@@ -47,11 +47,11 @@ module.exports = {
       } else {
 
         file = JSON.parse(vinylFile.readSync(opts.src).contents.toString());
-        existingJson = opts.key.split('.').reduce((o, i) => o[i], file);
-
+        keys = opts.key.split('.');
+        existingJson = keys.reduce((o, i) => o[i], file);
 
         //remove old files if present
-        if (opts.removeOld) {
+        if (opts.removeOld && existingJson) {
           existingJson.history.forEach(fileObj => {
 
             const fullPath = `${vinylStream.base}/${fileObj.name}`;
@@ -68,7 +68,9 @@ module.exports = {
             }
 
           });
+
         }
+
 
       }
 
@@ -112,7 +114,7 @@ module.exports = {
 
       theFile.contents = new Buffer(JSON.stringify(file));
 
-      vwrite(theFile)
+      vwrite(theFile);
       return cb(null);
 
     });
