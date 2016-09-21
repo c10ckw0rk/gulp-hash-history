@@ -17,7 +17,7 @@ module.exports = {
 
         opts = assign({}, {
             src: null,
-            key: 'legacy.js',
+            key: null,
             removeOld: true
         }, opts);
 
@@ -33,14 +33,15 @@ module.exports = {
 
             const newRecord = {
                 name: path.basename(vinylStream.path),
-                date: new Date()
-            };
-            const newDev = {
-                name: path.basename(vinylStream.originalName),
-                date: new Date()
+                date: new Date().toJSON()
             };
 
-            const template = {};
+            const newDev = {
+                name: path.basename(vinylStream.originalName),
+                date: new Date().toJSON()
+            };
+
+            const template = vinylStream.props || {};
             const jsonMaker = new Dop();
             const templateMaker = new Dop();
 
@@ -69,13 +70,14 @@ module.exports = {
                     jsonMaker.set(opts.key);
                     const baseStructure = jsonMaker.data();
                     file = merge(file, baseStructure);
+
                     template.history = [newRecord];
                     template.latest = newRecord;
                     template.dev = newDev;
 
                 //remove old files if present
                 } else if (existingJson.latest.name !== path.basename(vinylStream.path)) {
-                    
+
                     if (opts.removeOld) {
 
                         existingJson.history.forEach(fileObj => {
@@ -109,18 +111,11 @@ module.exports = {
 
             }
 
-            //**-- Create the Template --**//
-
-            //prepend structure provided in opt.key
             templateMaker.set(opts.key, template);
 
             const completeTemplate = templateMaker.data();
 
             file = merge(file, completeTemplate);
-
-            // //if exisiting file merge template json with old json else just be template json
-
-            // //**-- Create the file --**//
 
             const theFile = new Vinyl();
 
@@ -147,7 +142,20 @@ module.exports = {
             const dir = path.dirname(vinylStream.path);
             const fileExt = path.extname(vinylStream.relative);
             const fileName = path.basename(vinylStream.path, fileExt);
+            const regex = /\/\*.*?@FileProperties([^]*?)\*\//;
+            const matches = vinylStream.contents.toString().match(regex);
+            const mergedProps = matches[1].replace(/\*/ig, '').trim().split('\n');
+            const props = {};
 
+            mergedProps.forEach(item => {
+                item = item.split(':');
+                props[item[0].trim()] = item[1].trim();
+            });
+
+            if (props.dependencies) {
+                props.dependencies = eval(props.dependencies);
+            } 
+            
             if (vinylStream.isNull()) {
                 return cb(null);
             }
@@ -156,6 +164,8 @@ module.exports = {
             const hash = hasher.digest('hex').slice(0, 8);
 
             vinylStream.hash = hash;
+            vinylStream.props = props;
+
             vinylStream.originalName = vinylStream.path;
             vinylStream.path = `${dir}/${fileName}.${hash}${fileExt}`;
 
