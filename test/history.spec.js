@@ -5,7 +5,6 @@ const array = require('stream-array');
 const File = require('gulp-util').File;
 const gulp = require('gulp');
 const assert = require('stream-assert');
-const path = require('path');
 const fs = require('fs');
 const rimraf = require('rimraf');
 const diff = require('diff');

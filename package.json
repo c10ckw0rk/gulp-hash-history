@@ -1,6 +1,6 @@
 {
   "name": "gulp-hash-history",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Gulp plugin which accepts a file, adds a hash, and adds it to a manifest",
   "files": [
     "index.js"
