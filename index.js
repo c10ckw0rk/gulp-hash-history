@@ -42,6 +42,7 @@ module.exports = {
 
             const template = {};
             const jsonMaker = new Dop();
+            const templateMaker = new Dop();
 
             let file;
             let existingJson;
@@ -66,7 +67,8 @@ module.exports = {
                 if (!existingJson) {
 
                     jsonMaker.set(opts.key);
-                    file = merge(file, jsonMaker.data());
+                    const baseStructure = jsonMaker.data();
+                    file = merge(file, baseStructure);
                     template.history = [newRecord];
                     template.latest = newRecord;
                     template.dev = newDev;
@@ -110,7 +112,11 @@ module.exports = {
             //**-- Create the Template --**//
 
             //prepend structure provided in opt.key
-            jsonMaker.set(opts.key, template);
+            templateMaker.set(opts.key, template);
+
+            const completeTemplate = templateMaker.data();
+
+            file = merge(file, completeTemplate);
 
             // //if exisiting file merge template json with old json else just be template json
 
