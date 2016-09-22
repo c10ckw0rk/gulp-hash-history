@@ -31,11 +31,13 @@ module.exports = {
         if (!opts.destHistory) error('no history provided');
         if (!opts.destLatest) error('no latest provided');
 
-        return through.obj((vinylStream, enc, cb) => {
+        return through.obj(function (vinylStream, enc, cb) {
 
-            if (!vinylStream.hash) {
+            if (!vinylStream.hashPath) {
                 return cb(null, vinylStream);
             }
+            
+            vinylStream.path = vinylStream.hashPath;
 
             if (vinylStream.isNull()) {
                 return cb('Nothing passed in stream');
@@ -83,8 +85,6 @@ module.exports = {
                         }]
                     };
                 }
-
-                // console.log(json);
 
                 return {
                     file: file,
@@ -200,7 +200,7 @@ module.exports = {
 
                 return makeFile(template, file, dest);
 
-            }
+            };
 
             const newRecord = assign({}, vinylStream.props, {
                 name: path.basename(vinylStream.path),
@@ -212,9 +212,9 @@ module.exports = {
                 date: new Date().toJSON()
             };
 
+            this.push(vinylStream);
             vwrite(createHistory(opts.destHistory, newRecord));
             vwrite(createLatest(opts.destLatest, newRecord, newDev));
-
 
             return cb(null);
 
@@ -224,7 +224,7 @@ module.exports = {
 
     hash: () => {
 
-        return through.obj(function(vinylStream, enc, cb) {
+        return through.obj(function (vinylStream, enc, cb) {
 
 
             const hasher = crypto.createHash('sha1');
@@ -252,11 +252,10 @@ module.exports = {
             hasher.update(vinylStream.contents);
             const hash = hasher.digest('hex').slice(0, 8);
 
-            vinylStream.hash = hash;
+            vinylStream.hashPath = `${dir}/${fileName}.${hash}${fileExt}`;
             vinylStream.props = props;
 
             vinylStream.originalName = vinylStream.path;
-            vinylStream.path = `${dir}/${fileName}.${hash}${fileExt}`;
 
             this.push(vinylStream);
 
