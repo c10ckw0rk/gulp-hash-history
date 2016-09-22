@@ -16,10 +16,20 @@ module.exports = {
     history: opts => {
 
         opts = assign({}, {
-            src: null,
+            destHistory: null,
+            destLatest: null,
             key: null,
             removeOld: true
         }, opts);
+
+        const error = (msg) => {
+
+            throw new Error(msg);
+
+        };
+
+        if (!opts.destHistory) error('no history provided');
+        if (!opts.destLatest) error('no latest provided');
 
         return through.obj((vinylStream, enc, cb) => {
 
@@ -31,56 +41,142 @@ module.exports = {
                 return cb('Nothing passed in stream');
             }
 
-            const newRecord = {
-                name: path.basename(vinylStream.path),
-                date: new Date().toJSON()
+            const makeFile = (template, file, name) => {
+
+                const templateMaker = new Dop();
+
+                templateMaker.set(opts.key, template);
+
+                const completeTemplate = templateMaker.data();
+
+                file = merge(file, completeTemplate);
+
+                const theFile = new Vinyl();
+
+                if (name) {
+                    theFile.path = process.cwd() + '/' + path.dirname(name) + '/' + path.basename(name);
+                } else {
+                    theFile.path = './';
+                }
+
+                theFile.contents = new Buffer(JSON.stringify(file));
+
+                return theFile;
+
             };
 
-            const newDev = {
-                name: path.basename(vinylStream.originalName),
-                date: new Date().toJSON()
-            };
+            const getOldFile = (dest) => {
 
-            const template = vinylStream.props || {};
-            const jsonMaker = new Dop();
-            const templateMaker = new Dop();
-
-            let file;
-            let existingJson;
-
-            //create empty object or get old object if exists.
-            if (!fs.existsSync(opts.src)) {
-
-                file = {};
-
-            } else {
+                let json;
 
                 //get the file
-                file = JSON.parse(vinylFile.readSync(opts.src).contents.toString());
+                const file = JSON.parse(vinylFile.readSync(dest).contents.toString());
 
                 try {
                     const keys = opts.key.split('.');
-                    existingJson = keys.reduce((o, i) => o[i], file);
+                    json = keys.reduce((o, i) => o[i], file);
                 } catch (e) {
-                    existingJson = null;
+                    console.log(e);
+                    json = {
+                        history: [{
+                            name: null
+                        }]
+                    };
                 }
 
-                if (!existingJson) {
+                // console.log(json);
 
+                return {
+                    file: file,
+                    json: json
+                };
+
+            };
+
+            const createLatest = (dest, newRecord, newDev) => {
+
+                const template = vinylStream.props || {};
+                const jsonMaker = new Dop();
+                let file;
+
+                //create empty object or get old object if exists.
+                if (fs.existsSync(dest)) {
+
+                    const exisiting = getOldFile(dest);
+
+                    file = exisiting.file;
+
+                    if (!exisiting.json) {
+
+                        jsonMaker.set(opts.key);
+                        const baseStructure = jsonMaker.data();
+                        file = merge(file, baseStructure);
+
+                        template.latest = newRecord;
+                        template.dev = newDev;
+
+                        //remove old files if present
+                    } else if (!exisiting.json) {
+
+                        template.latest = newRecord;
+                        template.dev = newDev;
+
+                        //remove old files if present
+                    } else if (exisiting.json.latest.name !== path.basename(vinylStream.path)) {
+
+                        template.latest = newRecord;
+                        template.dev = newDev;
+
+                    }
+
+                } else {
+
+                    file = {};
+                }
+
+                template.latest = newRecord;
+                template.dev = newDev;
+
+                return makeFile(template, file, dest);
+
+            };
+
+            const createHistory = (dest, newRecord) => {
+
+                const template = {};
+                const jsonMaker = new Dop();
+
+                let file = {};
+                let exisiting;
+
+                //create empty object or get old object if exists.
+                if (fs.existsSync(dest)) {
+
+                    //get the file
+                    exisiting = getOldFile(dest);
+                    file = exisiting.file;
+
+                }
+                //if no existing
+                if (!exisiting) {
+
+                    //make a new json structure using key
                     jsonMaker.set(opts.key);
-                    const baseStructure = jsonMaker.data();
-                    file = merge(file, baseStructure);
+                    file = merge(file, jsonMaker.data());
 
                     template.history = [newRecord];
-                    template.latest = newRecord;
-                    template.dev = newDev;
 
-                //remove old files if present
-                } else if (existingJson.latest.name !== path.basename(vinylStream.path)) {
+
+                } else if (!exisiting.json) {
+
+                    template.history = [newRecord];
+
+                    //remove old files if present
+                } else if (exisiting.json.history[0].name !== path.basename(vinylStream.path)) {
 
                     if (opts.removeOld) {
 
-                        existingJson.history.forEach(fileObj => {
+                        exisiting.json.history.forEach(fileObj => {
 
                             const fullPath = `${vinylStream.base}/${fileObj.name}`;
                             const map = fullPath + '.map';
@@ -97,37 +193,29 @@ module.exports = {
 
                     }
 
-
-                    existingJson.history.unshift(newRecord);
-                    template.history = existingJson.history;
-
-                    //set new record as latest;
-                    template.latest = newRecord;
-
-                    //set the new dev path
-                    template.dev = newDev;
+                    exisiting.json.history.unshift(newRecord);
+                    template.history = exisiting.json.history;
 
                 }
 
+                return makeFile(template, file, dest);
+
             }
 
-            templateMaker.set(opts.key, template);
+            const newRecord = assign({}, vinylStream.props, {
+                name: path.basename(vinylStream.path),
+                date: new Date().toJSON()
+            });
 
-            const completeTemplate = templateMaker.data();
+            const newDev = {
+                name: path.basename(vinylStream.originalName),
+                date: new Date().toJSON()
+            };
 
-            file = merge(file, completeTemplate);
+            vwrite(createHistory(opts.destHistory, newRecord));
+            vwrite(createLatest(opts.destLatest, newRecord, newDev));
 
-            const theFile = new Vinyl();
 
-            if (opts.src) {
-                theFile.path = process.cwd() + '/' + path.dirname(opts.src) + '/' + path.basename(opts.src);
-            } else {
-                theFile.path = './';
-            }
-
-            theFile.contents = new Buffer(JSON.stringify(file));
-
-            vwrite(theFile);
             return cb(null);
 
         });
@@ -136,7 +224,8 @@ module.exports = {
 
     hash: () => {
 
-        return through.obj((vinylStream, enc, cb) => {
+        return through.obj(function(vinylStream, enc, cb) {
+
 
             const hasher = crypto.createHash('sha1');
             const dir = path.dirname(vinylStream.path);
@@ -154,8 +243,8 @@ module.exports = {
 
             if (props.dependencies) {
                 props.dependencies = eval(props.dependencies);
-            } 
-            
+            }
+
             if (vinylStream.isNull()) {
                 return cb(null);
             }
@@ -169,7 +258,9 @@ module.exports = {
             vinylStream.originalName = vinylStream.path;
             vinylStream.path = `${dir}/${fileName}.${hash}${fileExt}`;
 
-            return cb(null, vinylStream);
+            this.push(vinylStream);
+
+            return cb(null);
 
         });
 
