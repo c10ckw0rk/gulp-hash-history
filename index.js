@@ -10,6 +10,7 @@ const assign = require('lodash').assign;
 const Dop = require('dataobject-parser');
 const merge = require('deepmerge');
 const vwrite = require('vinyl-write');
+const chalk = require('chalk');
 
 module.exports = {
 
@@ -18,6 +19,7 @@ module.exports = {
         opts = assign({}, {
             destHistory: null,
             destLatest: null,
+            dest: null,
             key: null,
             removeOld: true
         }, opts);
@@ -36,13 +38,13 @@ module.exports = {
             if (!vinylStream.hashPath) {
                 return cb(null, vinylStream);
             }
-            
-            vinylStream.path = vinylStream.hashPath;
 
             if (vinylStream.isNull()) {
                 return cb('Nothing passed in stream');
             }
 
+            vinylStream.path = vinylStream.hashPath + path.extname(vinylStream.relative);
+          
             const makeFile = (template, file, name) => {
 
                 const templateMaker = new Dop();
@@ -106,7 +108,7 @@ module.exports = {
 
                     file = exisiting.file;
 
-                    if (!exisiting.json) {
+                    if (!exisiting) {
 
                         jsonMaker.set(opts.key);
                         const baseStructure = jsonMaker.data();
@@ -116,17 +118,6 @@ module.exports = {
                         template.dev = newDev;
 
                         //remove old files if present
-                    } else if (!exisiting.json) {
-
-                        template.latest = newRecord;
-                        template.dev = newDev;
-
-                        //remove old files if present
-                    } else if (exisiting.json.latest.name !== path.basename(vinylStream.path)) {
-
-                        template.latest = newRecord;
-                        template.dev = newDev;
-
                     }
 
                 } else {
@@ -157,6 +148,7 @@ module.exports = {
                     file = exisiting.file;
 
                 }
+
                 //if no existing
                 if (!exisiting) {
 
@@ -178,11 +170,15 @@ module.exports = {
 
                         exisiting.json.history.forEach(fileObj => {
 
-                            const fullPath = `${vinylStream.base}/${fileObj.name}`;
+                            if (!opts.dest) console.log(chalk.red('To remove old files you need to add the dest'));
+
+                            const fullPath = `${opts.dest}/${fileObj.name}`;
                             const map = fullPath + '.map';
 
                             if (fs.existsSync(fullPath)) {
-                                fs.unlinkSync(`${fullPath}`);
+                                fs.unlinkSync(fullPath);
+
+                                console.log(chalk.green(`Deleted ${fullPath}`));
                             }
 
                             if (fs.existsSync(map)) {
@@ -226,36 +222,57 @@ module.exports = {
 
         return through.obj(function (vinylStream, enc, cb) {
 
-
-            const hasher = crypto.createHash('sha1');
-            const dir = path.dirname(vinylStream.path);
-            const fileExt = path.extname(vinylStream.relative);
-            const fileName = path.basename(vinylStream.path, fileExt);
             const regex = /\/\*.*?@FileProperties([^]*?)\*\//;
             const matches = vinylStream.contents.toString().match(regex);
-            const mergedProps = matches[1].replace(/\*/ig, '').trim().split('\n');
-            const props = {};
 
-            mergedProps.forEach(item => {
-                item = item.split(':');
-                props[item[0].trim()] = item[1].trim();
-            });
+            if (matches === null) {
+                console.warn('no file properties provided in ' + vinylStream.path);
+            } else {
 
-            if (props.dependencies) {
-                props.dependencies = eval(props.dependencies);
+                const hasher = crypto.createHash('sha1');
+                const dir = path.dirname(vinylStream.path);
+                const fileExt = path.extname(vinylStream.relative);
+                const fileName = path.basename(vinylStream.path, fileExt);
+
+                const mergedProps = matches[0].replace(/\/\*.*?@FileProperties/ig, '')
+                                    .replace(/\*\//, '')
+                                    .replace(/\*/ig, '')
+                                    .trim()
+                                    .split('\n');
+
+                const props = {};
+
+                mergedProps.forEach(item => {
+                    item = item.split(':');
+
+                    props[item[0].trim()] = item[1].trim();
+                });
+
+                if (props.dependencies) {
+                    props.dependencies = eval(props.dependencies);
+                }
+
+                console.log(chalk.blue('file props are... '));
+
+                for (const key in props) {
+                    console.log(chalk.blue(`${key} : ${props[key]}`));
+                }
+
+                vinylStream.props = props;
+
+
+                hasher.update(vinylStream.contents);
+                const hash = hasher.digest('hex').slice(0, 8);
+
+                vinylStream.hashPath = `${dir}/${fileName}.${hash}`;
+
+                vinylStream.originalName = vinylStream.path;
+
             }
 
             if (vinylStream.isNull()) {
                 return cb(null);
             }
-
-            hasher.update(vinylStream.contents);
-            const hash = hasher.digest('hex').slice(0, 8);
-
-            vinylStream.hashPath = `${dir}/${fileName}.${hash}${fileExt}`;
-            vinylStream.props = props;
-
-            vinylStream.originalName = vinylStream.path;
 
             this.push(vinylStream);
 
