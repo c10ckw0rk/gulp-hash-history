@@ -24,6 +24,7 @@ module.exports = {
             removeOld: true
         }, opts);
 
+        const hasher = crypto.createHash('sha1');
         const error = (msg) => {
 
             throw new Error(msg);
@@ -35,16 +36,20 @@ module.exports = {
 
         return through.obj(function (vinylStream, enc, cb) {
 
-            if (!vinylStream.hashPath) {
-                return cb(null, vinylStream);
+            if (vinylStream.isNull()) {
+                return cb('Nothing passed in stream');
             }
 
             if (vinylStream.isNull()) {
                 return cb('Nothing passed in stream');
             }
 
-            vinylStream.path = vinylStream.hashPath + path.extname(vinylStream.relative);
-          
+            hasher.update(vinylStream.contents);
+            const hash = hasher.digest('hex').slice(0, 8);
+            const ext = path.extname(vinylStream.relative);
+            const name = path.basename(vinylStream.path, ext);
+            vinylStream.path = `${path.dirname(vinylStream.path)}/${name}.${hash}${ext}`;
+
             const makeFile = (template, file, name) => {
 
                 const templateMaker = new Dop();
@@ -218,7 +223,7 @@ module.exports = {
 
     },
 
-    hash: () => {
+    getProps: () => {
 
         return through.obj(function (vinylStream, enc, cb) {
 
@@ -226,13 +231,8 @@ module.exports = {
             const matches = vinylStream.contents.toString().match(regex);
 
             if (matches === null) {
-                console.warn('no file properties provided in ' + vinylStream.path);
+                // console.warn('no file properties provided in ' + vinylStream.path);
             } else {
-
-                const hasher = crypto.createHash('sha1');
-                const dir = path.dirname(vinylStream.path);
-                const fileExt = path.extname(vinylStream.relative);
-                const fileName = path.basename(vinylStream.path, fileExt);
 
                 const mergedProps = matches[0].replace(/\/\*.*?@FileProperties/ig, '')
                                     .replace(/\*\//, '')
@@ -259,13 +259,6 @@ module.exports = {
                 }
 
                 vinylStream.props = props;
-
-
-                hasher.update(vinylStream.contents);
-                const hash = hasher.digest('hex').slice(0, 8);
-
-                vinylStream.hashPath = `${dir}/${fileName}.${hash}`;
-
                 vinylStream.originalName = vinylStream.path;
 
             }
