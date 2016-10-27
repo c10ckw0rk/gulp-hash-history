@@ -40,10 +40,6 @@ module.exports = {
                 return cb('Nothing passed in stream');
             }
 
-            if (vinylStream.isNull()) {
-                return cb('Nothing passed in stream');
-            }
-
             hasher.update(vinylStream.contents);
             const hash = hasher.digest('hex').slice(0, 8);
             const ext = path.extname(vinylStream.relative);
@@ -208,8 +204,10 @@ module.exports = {
                 date: new Date().toJSON()
             });
 
+            const devName = path.basename(vinylStream.originalName, vinylStream.originalExt) + path.extname(vinylStream.path);
+
             const newDev = {
-                name: path.basename(vinylStream.originalName),
+                name: path.basename(devName),
                 date: new Date().toJSON()
             };
 
@@ -260,6 +258,7 @@ module.exports = {
 
                 vinylStream.props = props;
                 vinylStream.originalName = vinylStream.path;
+                vinylStream.originalExt = path.extname(vinylStream.path);
 
             }
 
