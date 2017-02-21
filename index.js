@@ -227,7 +227,7 @@ module.exports = {
             const matches = vinylStream.contents.toString().match(regex);
 
             if (matches === null) {
-                console.warn('no file properties provided in ' + vinylStream.path);
+                // console.warn('no file properties provided in ' + vinylStream.path);
             } else {
 
                 const mergedProps = matches[0].replace(/\/\*.*?@FileProperties/ig, '')
