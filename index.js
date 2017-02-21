@@ -64,7 +64,7 @@ module.exports = {
                     theFile.path = './';
                 }
 
-                theFile.contents = new Buffer(JSON.stringify(file));
+                theFile.contents = new Buffer(JSON.stringify(file, null, 4));
 
                 return theFile;
 
@@ -200,15 +200,13 @@ module.exports = {
             };
 
             const newRecord = assign({}, vinylStream.props, {
-                name: path.basename(vinylStream.path),
-                date: new Date().toJSON()
+                name: path.basename(vinylStream.path)
             });
 
             const devName = path.basename(vinylStream.originalName, vinylStream.originalExt) + path.extname(vinylStream.path);
 
             const newDev = {
-                name: path.basename(devName),
-                date: new Date().toJSON()
+                name: path.basename(devName)
             };
 
             this.push(vinylStream);
@@ -229,7 +227,7 @@ module.exports = {
             const matches = vinylStream.contents.toString().match(regex);
 
             if (matches === null) {
-                // console.warn('no file properties provided in ' + vinylStream.path);
+                console.warn('no file properties provided in ' + vinylStream.path);
             } else {
 
                 const mergedProps = matches[0].replace(/\/\*.*?@FileProperties/ig, '')
